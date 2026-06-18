@@ -25,9 +25,11 @@ sub-agents + a synchronous Codex review + the project's own tests/lint (health),
 then consolidate, gate, and report (or apply) fixes. You are the single durable
 memory of this run — sub-agents are stateless workers you coordinate.
 
-**Do not trust lens/Codex output on faith.** They can be over-strict, wrong, or
-hallucinate. YOU adjudicate every finding (Step 4.5) — verifying it yourself,
-empirically where possible — before anything reaches the user or the gate.
+**Findings are a first pass — give them a second review.** The lenses and Codex do
+the initial review; YOU re-check each finding against the real code (Step 4.5),
+empirically where you can, before it reaches the user or the gate. The aim is to back
+real issues with evidence and catch the occasional false-positive — *not* to assume
+the lenses are wrong (don't over-prune real findings).
 
 **Default is a single pass (`cycles=1`).** If `cycles=` is greater than 1, run the
 **carry-over convergence loop** in `references/cycles.md`: Steps 2–5 below become one cycle,
@@ -38,7 +40,7 @@ References (read the relevant one before the step that needs it):
 - `references/lenses.md` — lens catalog, signal→lens table, priority, prompt templates, the worker return schema (+ Phase-2 `acks`).
 - `references/tools.md` — canonical tool registry (commands, prereqs, timeouts, cost).
 - `references/cycles.md` — **Phase 2** loop: ledger, carry-over brief, acknowledgment contract, convergence, checkpoint, `resume`.
-- `references/adjudicate.md` — **Step 4.5**: how YOU verify each finding so lens false-positives never reach the user.
+- `references/adjudicate.md` — **Step 4.5**: the main's second-pass review — confirm each finding against the real code before reporting.
 
 ---
 
@@ -114,24 +116,25 @@ dedupe by id (wording differences don't matter). Severity P1/P2/P3.
 - **Empirical evidence only strengthens:** a failing test is a confirmed P1. A *passing*
   test does NOT downgrade a reasoning finding — at most annotate "covered by test, lower priority."
 
-## Step 4.5 — Adjudicate (verify each finding yourself; don't trust the lenses)
+## Step 4.5 — Confirm findings (second-pass review)
 
-Lenses and Codex can be over-strict, wrong, or hallucinate. **Before gating, YOU
-independently verify each consolidated finding** — never pass them through on trust
+The lenses and Codex did a first review; you give each consolidated finding a **second
+pass** before gating — confirm it against reality rather than forwarding it as-is
 (full method: `references/adjudicate.md`).
 
-For each finding (prioritize P1/P2; batch P3): **check it against reality, empirically
-when you can** — `Read` the cited code yourself and *prove* it with a cheap probe
-(run the regex/function on the claimed input, a 3-line repro, grep the test) rather than
-re-reasoning. Weigh corroboration (independent sources, health backing). Judge whether it
-is a real defect or **by-design / a nitpick / a known trade-off**, and adjust severity.
+For each finding (prioritize P1/P2; batch P3): **check it against the real code,
+empirically when you can** — `Read` the cited code and, where cheap, *confirm* it with a
+quick probe (run the regex/function on the claimed input, a 3-line repro, grep the test).
+Weigh corroboration (independent sources, health backing). Judge whether it's a real defect
+or **by-design / a nitpick / a known trade-off**, and adjust severity.
 
-Assign each finding a **verdict** with YOUR evidence:
-- `confirmed` — you proved it real · `uncertain` — plausible but unproven · `rejected` — false-positive / by-design / unsubstantiated.
+Assign each finding a **verdict** with your evidence:
+- `confirmed` — checked out · `uncertain` — plausible, couldn't confirm either way (**the default when unsure — keep it**) · `rejected` — you have positive evidence it's wrong / by-design.
 
-Only `confirmed` reaches the gate; `uncertain` is surfaced (flagged) but non-gating;
-**`rejected` is listed in a "Filtered" section with reasons — never dropped silently.**
-Never state an unverified finding as fact. (`--refute` adds skeptic sub-agents per confirmed P1.)
+Only `confirmed` gates; `uncertain` is surfaced (flagged) but non-gating; **`rejected` is
+listed in a "Filtered" section with your reason — never dropped silently.** Don't reject a
+finding just because you couldn't quickly reproduce it (→ `uncertain`), and don't assert an
+unconfirmed finding as fact. (Optional `--refute` adds an adversarial skeptic pass on confirmed P1s.)
 
 ## Step 5 — Gate + fix
 

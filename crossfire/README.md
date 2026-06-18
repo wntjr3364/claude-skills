@@ -43,9 +43,10 @@ guard), health baseline, cycles=2 carry-over/acks. Implemented-but-lightly-exerc
 ## Design provenance
 
 Designed and hardened through 3 rounds of its own adversarial + Codex review
-(see the design plan). Lens/Codex output is **not trusted on faith**: the
-orchestrator **adjudicates every finding (Step 4.5)** — verifying it empirically
-where possible and filtering false-positives / by-design nitpicks into an auditable
-"Filtered" section — before anything reaches the gate or the user. You still have
-the final say (override the verdicts); and for *domain* correctness (is this data
-record right?) the human expert decides — crossfire's strength is code/logic + methodology.
+(see the design plan). Lens/Codex output gets a **second-pass review**: the
+orchestrator re-checks every finding (Step 4.5) against the real code, empirically
+where possible — backing real issues with evidence and setting aside the occasional
+false-positive / by-design nitpick in an auditable "Filtered" section — before anything
+reaches the gate or the user. It biases toward keeping findings (rejects only with
+evidence), and you have the final say (override the verdicts). For *domain* correctness
+(is this data record right?) the human expert decides — crossfire's strength is code/logic + methodology.
