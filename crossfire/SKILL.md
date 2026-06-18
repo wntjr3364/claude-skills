@@ -10,7 +10,7 @@ description: |
   code changes or a plan doc without re-requesting the same review pattern every
   time. Defaults are cheap and one-pass; heavy tools are opt-in. cycles>1 runs a
   carry-over convergence loop (Phase 2).
-argument-hint: "[path] [mode=auto|code|plan] [fix=report|apply] [cycles=N] [lenses=auto|N|csv] [tools=+security,+stats,+perf,+visual|none] [url=...] [resume=<run>]"
+argument-hint: "[path] [mode=auto|code|plan] [fix=report|apply] [cycles=N] [lenses=auto|N|csv] [tools=+security,+stats,+perf,+visual|none] [url=...] [resume=<run>] [--refute]"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, AskUserQuestion, Skill
 metadata:
@@ -25,6 +25,10 @@ sub-agents + a synchronous Codex review + the project's own tests/lint (health),
 then consolidate, gate, and report (or apply) fixes. You are the single durable
 memory of this run — sub-agents are stateless workers you coordinate.
 
+**Do not trust lens/Codex output on faith.** They can be over-strict, wrong, or
+hallucinate. YOU adjudicate every finding (Step 4.5) — verifying it yourself,
+empirically where possible — before anything reaches the user or the gate.
+
 **Default is a single pass (`cycles=1`).** If `cycles=` is greater than 1, run the
 **carry-over convergence loop** in `references/cycles.md`: Steps 2–5 below become one cycle,
 and you carry a findings ledger between cycles (injecting a brief into each next-cycle worker)
@@ -34,6 +38,7 @@ References (read the relevant one before the step that needs it):
 - `references/lenses.md` — lens catalog, signal→lens table, priority, prompt templates, the worker return schema (+ Phase-2 `acks`).
 - `references/tools.md` — canonical tool registry (commands, prereqs, timeouts, cost).
 - `references/cycles.md` — **Phase 2** loop: ledger, carry-over brief, acknowledgment contract, convergence, checkpoint, `resume`.
+- `references/adjudicate.md` — **Step 4.5**: how YOU verify each finding so lens false-positives never reach the user.
 
 ---
 
@@ -49,6 +54,7 @@ Parse args (all optional):
 - `cycles=N` (default 1). N>1 → carry-over convergence loop (`references/cycles.md`).
 - `resume=<run>` — continue a prior run's ledger (`references/cycles.md`).
 - `--full-audit` — persist unmasked worker prompts (default masks secrets).
+- `--refute` — extra rigor: spawn skeptic sub-agents to try to refute each confirmed P1 (off by default; see `references/adjudicate.md`).
 
 Preflight (run via Bash, read-only):
 ```bash
@@ -108,21 +114,42 @@ dedupe by id (wording differences don't matter). Severity P1/P2/P3.
 - **Empirical evidence only strengthens:** a failing test is a confirmed P1. A *passing*
   test does NOT downgrade a reasoning finding — at most annotate "covered by test, lower priority."
 
+## Step 4.5 — Adjudicate (verify each finding yourself; don't trust the lenses)
+
+Lenses and Codex can be over-strict, wrong, or hallucinate. **Before gating, YOU
+independently verify each consolidated finding** — never pass them through on trust
+(full method: `references/adjudicate.md`).
+
+For each finding (prioritize P1/P2; batch P3): **check it against reality, empirically
+when you can** — `Read` the cited code yourself and *prove* it with a cheap probe
+(run the regex/function on the claimed input, a 3-line repro, grep the test) rather than
+re-reasoning. Weigh corroboration (independent sources, health backing). Judge whether it
+is a real defect or **by-design / a nitpick / a known trade-off**, and adjust severity.
+
+Assign each finding a **verdict** with YOUR evidence:
+- `confirmed` — you proved it real · `uncertain` — plausible but unproven · `rejected` — false-positive / by-design / unsubstantiated.
+
+Only `confirmed` reaches the gate; `uncertain` is surfaced (flagged) but non-gating;
+**`rejected` is listed in a "Filtered" section with reasons — never dropped silently.**
+Never state an unverified finding as fact. (`--refute` adds skeptic sub-agents per confirmed P1.)
+
 ## Step 5 — Gate + fix
 
-- **Gate:** PASS iff `P1 == 0 AND (P2 == 0 OR each remaining P2 explicitly deferred with a reason)`.
-  Plan mode may also apply a rubric gate (overall ≥ 7, every dimension > 3).
+- **Gate (confirmed findings only):** PASS iff `confirmed P1 == 0 AND (confirmed P2 == 0 OR each remaining deferred with a reason)`.
+  `uncertain` is surfaced but does not gate; `rejected` never gates. Plan mode may also apply a rubric gate (overall ≥ 7, every dimension > 3).
 - **fix=report** (default): print findings + suggested fixes only. No edits.
-- **fix=apply:** apply **Mechanical** fixes (obvious, high-confidence, empirically backed) automatically;
+- **fix=apply:** only **`confirmed`** findings are eligible. Apply **Mechanical** fixes (obvious, high-confidence, empirically backed) automatically;
   **Taste / User-Challenge** decisions go through `AskUserQuestion`. **Never edit a plan doc without explicit user approval.**
 
 ## Step 6 — Report + persist
 
-Print a findings table: `id · severity · location · source(lens/tool) · claim · evidence · fix · status`,
-then the gate result, skipped tools, and a cost summary.
+Print a findings table: `id · severity(orig→adjudicated) · location · source(lens/tool) · verdict · claim · evidence · fix · status`,
+then the gate result, skipped tools, and a cost summary. Add a **"Filtered (rejected / by-design)"**
+section listing every `rejected` finding with your reason — so the filtering is auditable and the
+user can override your judgment.
 
 Persist to `$RUN_DIR/`:
-- `findings.jsonl` — every finding, one JSON object per line (append-only).
+- `findings.jsonl` — every finding (incl. `verdict` + adjudication evidence), one JSON object per line (append-only).
 - `summary.md` — the human-readable report (table + gate + skipped + cost).
 - `cost.json` — lenses run, codex calls, tools, approx tokens/wall-time.
 

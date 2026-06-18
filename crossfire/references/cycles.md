@@ -9,7 +9,8 @@ into each new worker's prompt — not because sub-agents talk to each other.
 
 Held in your context AND persisted to `$RUN_DIR/findings.jsonl`. Append-only; on load, **latest record
 wins per `id`**. Each finding record:
-`id · severity · bug_type · location · claim · evidence · fix · confidence · sources · status · cycle_found · cycle_resolved`
+`id · severity · bug_type · location · claim · evidence · fix · confidence · sources · verdict · status · cycle_found · cycle_resolved`
+(`verdict ∈ {confirmed, uncertain, rejected}` — assigned by the orchestrator in adjudication, Step 4.5.)
 
 `status ∈ {open, fixed, still-failing, regressed, rejected, deferred, obsolete}`.
 `unresolved = {open, still-failing, regressed, deferred}`.
@@ -39,7 +40,9 @@ Transitions (each requires `source` + `evidence`):
    - `inconclusive` ack → keep prior status.
    - **Any carried unresolved P1/P2 with no ack, or only `inconclusive` acks across all workers → mark it
      `still-failing`/inconclusive and it FORCES the gate to FAIL** (not merely a logged gap).
-5. **Merge NEW findings** (id not seen before) into the ledger as `open`. Dedup by id.
+5. **Adjudicate NEW findings** (Step 4.5 / `references/adjudicate.md`) — verify each yourself, assign a
+   `verdict`; only `confirmed`/`uncertain` enter the ledger as `open`, `rejected` go to the Filtered list.
+   Then **merge** (id not seen before). Dedup by id.
 6. **Regression section**: for each file/function changed by cycle k-1's fixes, record `checked_by`
    (health|codex|lens) + evidence; anything unverified → `inconclusive`.
 7. **If `fix=apply`**: apply **Mechanical** fixes for `open` items now (edit the files); record each fix in the

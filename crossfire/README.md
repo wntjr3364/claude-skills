@@ -28,6 +28,7 @@ Args: `path=` · `mode=auto|code|plan` · `fix=report|apply` · `cycles=N` ·
 - `references/tools.md` — tool registry (codex/health + opt-in cso/benchmark/design-review/scientific-skills).
 - `references/cycles.md` — **Phase 2**: ledger, carry-over brief, acknowledgment contract, convergence, checkpoint, resume.
 - `references/adapters.md` — **Phase 3** stub (script/notebook/CLI/web execution adapters — not built).
+- `references/adjudicate.md` — **Step 4.5**: the orchestrator verifies each finding (empirically) and filters lens false-positives before reporting.
 
 ## Status
 
@@ -42,6 +43,9 @@ guard), health baseline, cycles=2 carry-over/acks. Implemented-but-lightly-exerc
 ## Design provenance
 
 Designed and hardened through 3 rounds of its own adversarial + Codex review
-(see the design plan). It surfaces *candidate* findings — a domain expert
-adjudicates which are real; crossfire's strength is code/logic + methodology, not
-adjudicating individual data records.
+(see the design plan). Lens/Codex output is **not trusted on faith**: the
+orchestrator **adjudicates every finding (Step 4.5)** — verifying it empirically
+where possible and filtering false-positives / by-design nitpicks into an auditable
+"Filtered" section — before anything reaches the gate or the user. You still have
+the final say (override the verdicts); and for *domain* correctness (is this data
+record right?) the human expert decides — crossfire's strength is code/logic + methodology.
