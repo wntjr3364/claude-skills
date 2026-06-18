@@ -5,7 +5,7 @@ Spawns an auto-selected set (2–6) of parallel adversarial Claude lenses + a
 synchronous Codex review + the project's own tests/typecheck/lint (health),
 consolidates findings by severity with stable IDs, and reports (or applies) fixes.
 Works **without git** (explicit target + snapshot diff). Persists to
-`~/.gstack/crossfire/runs/<run>/` (outside your repo).
+`~/.crossfire/runs/<run>/` (outside your repo).
 
 ## Quick usage
 

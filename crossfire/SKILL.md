@@ -54,7 +54,7 @@ Preflight (run via Bash, read-only):
 ```bash
 WORK_ROOT="$(cd "$(dirname "${TARGET:-.}")" 2>/dev/null && pwd || pwd)"
 RUN_ID="$(date +%Y%m%d-%H%M%S)-$$"
-RUN_DIR="$HOME/.gstack/crossfire/runs/$RUN_ID"
+RUN_DIR="$HOME/.crossfire/runs/$RUN_ID"
 mkdir -p "$RUN_DIR/baseline"
 command -v codex >/dev/null && echo "codex: ok" || echo "codex: MISSING (skip + note)"
 # REPO_ROOT only if inside a git work tree:
