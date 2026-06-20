@@ -9,7 +9,8 @@ description: |
   statistics/methodology (scientific-skills), performance, visual. Use to verify
   code changes or a plan doc without re-requesting the same review pattern every
   time. Defaults are cheap and one-pass; heavy tools are opt-in. cycles>1 runs a
-  carry-over convergence loop (Phase 2).
+  carry-over convergence loop (Phase 2). NOT for grading data rows / measuring output
+  accuracy (e.g. judging ontology-mapping CSV rows for precision) -> use `assay`.
 argument-hint: "[path] [mode=auto|code|plan] [fix=report|apply] [cycles=N] [lenses=auto|N|csv] [tools=+security,+stats,+perf,+visual|none] [url=...] [resume=<run>] [--refute]"
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, Agent, AskUserQuestion, Skill
@@ -159,6 +160,7 @@ Persist to `$RUN_DIR/`:
 ---
 
 ## Degrade / edge cases
+- **Fit-check**: if the target is a **data table to grade for accuracy** (judge rows correct/incorrect, measure precision) rather than code/a plan to review for bugs → **recommend `/assay` and stop**. If it isn't a verification task at all → say so and do it directly (no skill).
 - Nothing to verify (no path, no diff, no plan) → ask once, else stop cleanly.
 - codex / a health tool / an opt-in skill missing → skip that layer, note it in the report (no silent fallback).
 - `+security`(`gstack:cso`) / `+stats`(`scientific-skills:...`) etc. invoked via the Skill tool; if the

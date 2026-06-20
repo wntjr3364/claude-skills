@@ -23,10 +23,15 @@ manager context flows down to each per-skill session.
 
 ## Conventions
 - Keep `SKILL.md` lean (the orchestrator); push detail to `references/`.
+- **Fit-check first**: every skill starts by confirming the request actually fits it; if not,
+  it recommends the right skill (or none) and stops — it does NOT force a non-fitting request
+  into its shape. (e.g. crossfire ↔ assay redirect each other: code/plan vs data-row accuracy.)
 - **Dogfood before declaring done**: build a tiny real case and actually run it. For code, `/crossfire`.
 - **Honest degrade**: a skill must report what it skipped / couldn't verify — no silent fallback.
 - Persist run artifacts OUTSIDE the repo (e.g. under `~/`), never write into a target project.
 
 ## Skills here
-- `crossfire/` — adversarial (sub-agent lenses + Codex) + empirical (tests/lint) verification,
-  with an optional cycle convergence loop (carry-over + acknowledgment). Phase 1+2 built & validated; Phase 3 deferred.
+- `crossfire/` — adversarial (sub-agent lenses + Codex) + empirical (tests/lint) verification of
+  **code/plans**, with an optional cycle convergence loop (carry-over + acknowledgment). Phase 1+2 built & validated; Phase 3 deferred.
+- `assay/` — multi-judge accuracy adjudication of **data rows/claims** (ontology mappings, curation
+  rows): N skeptical judges → verdicts → kill rule → precision (Wilson CI, reuses project scorer). Sibling of crossfire (data ↔ code).
