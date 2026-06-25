@@ -112,7 +112,7 @@ Launch concurrently (one message, multiple tool calls):
 
 Merge all lens findings + codex findings + health failures. Assign each a
 **deterministic id = short hash of (normalized location + bug_type + short claim)**;
-dedupe by id (wording differences don't matter). Severity P1/P2/P3.
+dedupe by id (wording differences don't matter). Severity P1/P2/P3. **Each finding starts at `status=open`** (the Step-5 gate reads `status`; Step 4.5 only assigns the `verdict`).
 - **Keep single-lens P1s** (only drop low-confidence non-P1 with no substantiation).
 - **Empirical evidence only strengthens:** a failing test is a confirmed P1. A *passing*
   test does NOT downgrade a reasoning finding — at most annotate "covered by test, lower priority."
@@ -130,7 +130,10 @@ Weigh corroboration (independent sources, health backing). Judge whether it's a 
 or **by-design / a nitpick / a known trade-off**, and adjust severity.
 
 Assign each finding a **verdict** from the **specific evidence you gathered** — not mere agreement with the lens:
-- `confirmed` — you have **specific grounded evidence** it's a real defect, in one of two forms: **(i) executable** — a failing test, or a probe command + its actual output (re-runnable); **(ii) cited** — when no cheap probe exists (a race, a security/exploit chain, a design defect, or a plan/spec contradiction), an exact citation that pins it: the precise code lines, the two conflicting passages, or a concrete step-by-step trace of the bad path. What is **not** confirmation: "the lens says so and it sounds right" with no specific grounding (→ `uncertain`). The line is *grounded vs. assent*, not *executable vs. not*.
+- `confirmed` — you have **specific grounded evidence** it's a real defect, in one of two forms:
+  - **(i) executable** — a re-runnable check whose *failure encodes the defect itself*: a failing test, or a probe + its actual output asserting the wrong behavior. A lint/static-analysis/typecheck failure is form (i) **when the rule failure itself directly encodes the defect** (a real type error, a flagged null-deref, the style regression itself); a bare linter re-run for an *unrelated* functional bug is only a regression check, **not** the reproduction. A **non-deterministic** repro (race/flaky) is form (i) only with a stated run-count + stability threshold (e.g. `0/100` failures post-fix); a single pass is not enough — otherwise treat it as form (ii).
+  - **(ii) cited** — when no cheap executable check exists (a race without a stress harness, a security/exploit chain, a design defect, a plan/spec contradiction): an exact citation that pins it — **specific** `file:line` / function / control-flow edges (e.g. `line 47 calls F(x); F returns None at :82; :50 dereferences it`) or the two conflicting passages. A vague narrative is not a citation (→ `uncertain`).
+  - **Not** confirmation: "the lens says so and it sounds right" with no specific grounding (→ `uncertain`). The line is *grounded vs. assent*, not *executable vs. not*.
 - `uncertain` — plausible but you couldn't ground it (**the default when unsure — keep it**). Surfaced, but doesn't gate and is never auto-edited.
 - `rejected` — you have positive evidence it's wrong / by-design.
 
@@ -153,16 +156,16 @@ ungrounded finding as fact. (Optional `--refute` adds an adversarial skeptic pas
 P1 blocks (gates) even if you can't run it; the code is only *edited automatically* when a failing
 check can prove the edit worked. Surfacing stays generous.
 
-- **Gate (confirmed findings only):** PASS iff `confirmed P1 == 0 AND (confirmed P2 == 0 OR each remaining P2 explicitly accepted/deferred with a reason)`.
-  `uncertain` is surfaced but does not gate; `rejected` never gates. Plan mode may also apply a rubric gate (overall ≥ 7, every dimension > 3).
+- **Gate (one definition — same in Phase 1 and Phase 2).** A finding is **resolved** iff `verdict != confirmed` (e.g. refuted → verdict `rejected`) OR `status ∈ {fixed, obsolete}`. **PASS iff** every confirmed **P1 is resolved** (deferring a P1 does *not* resolve it — only a kept fix, refutation, or dead code does) **AND** every confirmed **P2 is resolved or deferred-with-reason**. `uncertain` is surfaced but never blocks; a failed/reverted fix leaves `status=still-failing` (still confirmed, unresolved → still blocks). Plan mode may also apply a rubric gate (overall ≥ 7, every dimension > 3). (Every finding carries a `status`, default `open`, even in a single pass.)
 - **fix=report** (default): print findings + suggested fixes only. No edits.
 - **fix=apply** — auto-edit only findings that are **`confirmed` AND have an executable reproduction** (Step 4.5 form (i)).
   For each, run the **apply → verify → keep-or-revert** loop (full method: `references/adjudicate.md`):
   1. **Derive the fix yourself** from the confirmed root cause. Do NOT paste the lens/Codex's suggested patch unverified — a real bug often ships with a wrong fix (a top source of weird edits).
   2. **Apply** the minimal change.
-  3. **Verify:** re-run the finding's reproduction — it must flip **fail→pass** — AND, if health exists, re-run it (no regression vs the Step-3 baseline). **If health is unavailable you can't prove no-regression → don't auto-apply; report the fix instead.**
-  4. **Keep or revert:** all checks pass → keep + record before/after output. Either fails → **revert the edit**, downgrade the verdict `confirmed → uncertain` (or `rejected` if the failed fix disproves it), and leave it as a reported suggestion (never an unproven edit).
+  3. **Verify:** re-run the finding's reproduction — it must flip **fail→pass** (a non-deterministic repro: re-run to its stated count/threshold, not once) — AND, **if the project has health**, re-run it (no regression vs the Step-3 baseline). **No health suite?** You may still keep a fix whose *own* reproduction flips fail→pass, but record `broad regression unchecked` and route any edit touching shared/broad surface to *report* instead.
+  4. **Keep or revert:** all checks pass → keep, set `status=fixed`, record before/after. The reproduction still fails (or health regressed) → **revert the edit**, **keep `verdict=confirmed` and set `status=still-failing`** (record "fix attempted, still reproduces") — it **still blocks the gate**; report it for a human. Set `rejected` only if the attempt is positive evidence the finding was wrong. **Never relabel a still-reproducing defect `uncertain` to make the gate pass.**
   - **Confirmed-but-cited-only** findings (form (ii): races, design, security, plan/spec) and all **`uncertain`** ones → **reported with a suggested fix, not auto-edited** — the human applies them.
+  - **Gate FAILs under `fix=apply` and the blockers aren't auto-editable** (form (ii), or `still-failing` after a failed fix) → report each with its suggested fix and **exit with a clear "fix=apply cannot close these — manual fix required" message; don't loop.** In `cycles=N`, a form-(ii) or `still-failing` P1 is a **manual blocker**: surface it and stop cycling (FAIL + reason) rather than burning cycles that cannot resolve it.
   - **Cost guard:** if a reproduction is expensive (>~30s) or many fixes queue, warn + batch (or just report) rather than re-running after every edit.
   - **Taste / User-Challenge** decisions go through `AskUserQuestion` first. **Never edit a plan doc without explicit user approval.**
 

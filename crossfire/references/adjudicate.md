@@ -35,12 +35,16 @@ For each consolidated finding, decide a **verdict** with YOUR OWN evidence:
 ## Verdicts
 
 - `confirmed` — you have **specific grounded evidence** it's a real defect, in one of two forms:
-  **(i) executable** — a failing test, or a probe command + its actual output (re-runnable); or
-  **(ii) cited** — when no cheap probe exists (race / security / design / a plan-spec
-  contradiction), an exact citation that pins it: the precise code lines, the two conflicting
-  passages, or a concrete step-by-step trace of the bad path. **Mere agreement with the lens is
-  NOT enough** (→ `uncertain`). Only **form (i)** findings are eligible for *auto-apply* (Step 5);
-  form (ii) gates and is reported, but the human applies the fix.
+  **(i) executable** — a re-runnable check whose failure *encodes the defect* (failing test, or
+  probe + output asserting the wrong behavior). A lint/static-analysis/typecheck failure is form (i) when
+  the rule failure itself directly encodes the defect; a bare linter re-run for an unrelated
+  functional bug is only a regression check, not the reproduction. A non-deterministic repro (race/flaky) is form (i) only
+  with a stated run-count + threshold; a single pass is not enough → else form (ii).
+  **(ii) cited** — no cheap executable check exists: an exact citation pinning it to **specific**
+  `file:line` / functions / control-flow edges (e.g. `:47 calls F(x); F→None at :82; :50 derefs it`)
+  or the two conflicting passages. A vague narrative is not a citation (→ `uncertain`).
+  **Mere agreement is NOT enough** (→ `uncertain`). Only **form (i)** is eligible for *auto-apply*
+  (Step 5); form (ii) gates and is reported, but the human applies the fix.
 - `uncertain` — plausible but you couldn't confirm either way. **This is the default when unsure — keep it**, don't reject for lack of a quick repro.
 - `rejected` — you have **positive evidence** it's wrong / by-design (cite WHY). Not "I didn't bother to check."
 
@@ -56,7 +60,7 @@ Record original vs adjudicated severity. The goal is accuracy, not minimizing th
   "Filtered (likely false-positive / by-design)" section with your reason. The
   filtering must be auditable so the user can override your judgment.
 - **Never assert an unverified finding as fact.** If you couldn't check it, say so (`uncertain`).
-- Under `fix=apply`, only `confirmed` findings are eligible for auto-fix.
+- Under `fix=apply`, only `confirmed` findings **with an executable form-(i) reproduction** are eligible for auto-fix.
 
 ## After you apply a fix — prove it, or revert it
 
@@ -71,11 +75,14 @@ For an auto-applied fix, the patch itself is a new claim that can be wrong — d
    proposed patch unverified — they flagged the symptom; the suggested fix may misread the code.
    A real bug with a wrong fix is the top source of "weird edits."
 2. **Re-run the finding's reproduction after the edit** — the same probe must now pass (**fail→pass**).
-3. **Re-run health if it exists** — no new failures vs the Step-3 baseline. **If health is
-   unavailable**, you can't prove no-regression → **don't auto-apply; report the fix instead.**
-4. **Keep only if all checks pass.** Otherwise **revert the edit**, downgrade the verdict
-   `confirmed → uncertain` (or `rejected` if the failed fix disproves the finding), and leave it
-   as a reported suggestion. A fix you can't prove is a suggestion for the human, not a silent edit.
+3. **Re-run health if the project has it** — no new failures vs the Step-3 baseline. **No health
+   suite?** You may still keep a fix whose *own* reproduction flips fail→pass, but record
+   `broad regression unchecked` and send any edit on shared/broad surface to *report* instead.
+4. **Keep only if all checks pass** → `status=fixed`. Otherwise **revert the edit** and **keep
+   `verdict=confirmed`, set `status=still-failing`** ("fix attempted, still reproduces") — it
+   **still gates**; hand it to the human. Set `rejected` only if the failed attempt is positive
+   evidence the finding was wrong. **Never** relabel a still-reproducing defect `uncertain` to make
+   the gate pass.
 
 **Cost guard:** if a reproduction is expensive (>~30s) or many fixes queue, warn + batch (or just
 report) rather than re-running after every edit. Record the before→after output so every applied

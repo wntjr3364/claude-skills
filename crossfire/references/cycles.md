@@ -16,7 +16,7 @@ wins per `id`**. Each finding record:
 `unresolved = {open, still-failing, regressed, deferred}`.
 
 Transitions (each requires `source` + `evidence`):
-- `open` → `fixed` (fix applied AND verified) | `still-failing` (re-verify failed) | `rejected` (refuted) | `deferred` (reason) | `obsolete` (target code gone)
+- `open` → `fixed` (fix applied AND verified) | `still-failing` (re-verify failed) | `rejected` (refuted — also set verdict `rejected`) | `deferred` (reason) | `obsolete` (target code gone)
 - `fixed` → `regressed` (regression found later)
 - `still-failing`/`regressed` → `fixed` (later fix verified)
 - Illegal transitions (e.g. `fixed`→`open` without cause) are rejected.
@@ -47,16 +47,18 @@ Transitions (each requires `source` + `evidence`):
    (health|codex|lens) + evidence; anything unverified → `inconclusive`.
 7. **If `fix=apply`**: auto-edit only `open` items that are **`confirmed` with an executable reproduction**
    (Step 4.5 form (i)). Apply each through the **apply → verify → keep-or-revert loop immediately this cycle**
-   (re-run its reproduction fail→pass + health no-regression; else revert + downgrade the verdict) — do **not**
-   defer verification to the next cycle. Record fix + before/after in the ledger and `cycle_k.md`; a kept fix is
-   marked `fixed` now (the next cycle's ack re-checks for regression). **Confirmed-but-cited-only (form (ii)) and
-   `uncertain` items are reported suggestions, not auto-edited.** **Taste / User-Challenge** → `AskUserQuestion`.
-   Never edit a plan doc without approval.
+   (re-run its reproduction fail→pass + health no-regression; **else revert, keep `verdict=confirmed` and set
+   `status=still-failing`** — it still gates) — do **not** defer verification to the next cycle. Record fix +
+   before/after in the ledger and `cycle_k.md`; a kept fix → `status=fixed` now (the next cycle's ack re-checks
+   for regression). **Confirmed-but-cited-only (form (ii)) and `uncertain` items are reported suggestions, not
+   auto-edited — a form-(ii) or `still-failing` P1 is a manual blocker `fix=apply` cannot close (see convergence).**
+   **Taste / User-Challenge** → `AskUserQuestion`. Never edit a plan doc without approval.
 8. **Write `cycle_k.md`** journal: lenses run + trigger signals, fixes applied + diff, decisions
    (Mechanical/Taste/Challenge), gate result, regression section, ack coverage (`unresolved N carried / M acknowledged`).
 9. **Convergence check** — STOP when **all** hold: (new-open this cycle == 0) AND (regressions == 0) AND
-   (gate satisfied: no unresolved P1, every unresolved P2 deferred-with-reason, no unack/inconclusive unresolved P1/P2).
-   Otherwise continue to cycle k+1.
+   (gate satisfied: every confirmed P1 resolved, every confirmed P2 resolved or `deferred`-with-reason, no unack/inconclusive unresolved P1/P2).
+   Otherwise continue to cycle k+1. **`fix=apply` cannot auto-resolve a form-(ii) or `still-failing` P1** — don't
+   spin: surface it as a **manual blocker** and stop with gate FAIL + reason rather than exhausting N on it.
 10. **Bound / auto-checkpoint**: if ledger findings > ~100 OR tokens used > ~150k, checkpoint to disk, tell the
     user to re-run with `resume=<run>`, and stop the turn (best-effort one turn).
 
@@ -66,6 +68,9 @@ Transitions (each requires `source` + `evidence`):
 Load `$RUN_DIR/findings.jsonl` (latest-wins per id), recompute `unresolved`, **hash current target files vs
 `baseline/`** → note external drift, then continue from the next cycle.
 
-## Gate (final)
-PASS iff: no `unresolved` P1 **and** every `unresolved` P2 is `deferred` with a reason **and** no carried
-unresolved P1/P2 left unacknowledged/inconclusive.
+## Gate (final) — same definition as Phase 1
+A finding is **resolved** iff `verdict != confirmed` (refuted → verdict `rejected`) OR `status ∈ {fixed, obsolete}`
+(`unresolved = {open, still-failing, regressed, deferred}`).
+PASS iff: every confirmed **P1 is resolved** (a P1 cannot be cleared by `deferred`) **and** every
+confirmed **P2 is resolved or `deferred`-with-reason** **and** no carried unresolved P1/P2 left
+unacknowledged/inconclusive.
