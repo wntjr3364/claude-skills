@@ -129,21 +129,42 @@ quick probe (run the regex/function on the claimed input, a 3-line repro, grep t
 Weigh corroboration (independent sources, health backing). Judge whether it's a real defect
 or **by-design / a nitpick / a known trade-off**, and adjust severity.
 
-Assign each finding a **verdict** with your evidence:
-- `confirmed` — checked out · `uncertain` — plausible, couldn't confirm either way (**the default when unsure — keep it**) · `rejected` — you have positive evidence it's wrong / by-design.
+Assign each finding a **verdict** from the **specific evidence you gathered** — not mere agreement with the lens:
+- `confirmed` — you have **specific grounded evidence** it's a real defect, in one of two forms: **(i) executable** — a failing test, or a probe command + its actual output (re-runnable); **(ii) cited** — when no cheap probe exists (a race, a security/exploit chain, a design defect, or a plan/spec contradiction), an exact citation that pins it: the precise code lines, the two conflicting passages, or a concrete step-by-step trace of the bad path. What is **not** confirmation: "the lens says so and it sounds right" with no specific grounding (→ `uncertain`). The line is *grounded vs. assent*, not *executable vs. not*.
+- `uncertain` — plausible but you couldn't ground it (**the default when unsure — keep it**). Surfaced, but doesn't gate and is never auto-edited.
+- `rejected` — you have positive evidence it's wrong / by-design.
 
-Only `confirmed` gates; `uncertain` is surfaced (flagged) but non-gating; **`rejected` is
-listed in a "Filtered" section with your reason — never dropped silently.** Don't reject a
+**Auto-apply eligibility is a *separate* test from the verdict.** A finding is auto-editable
+**only if it is `confirmed` AND has an *executable* reproduction (form (i))** — a probe/test/lint
+check that fails now and can be re-run after the fix. A `confirmed` finding grounded only by a
+citation/trace (form (ii)), and everything `uncertain`, is **reported with a suggested fix but
+never auto-edited** — you hand it to the human. This is the real guard against weird auto-edits:
+the code changes only when a failing check can prove the change worked.
+
+Only `confirmed` **gates** (form (i) or (ii) — a grounded P1 blocks even if you can't run it, so
+"keep single-lens P1s" still holds); `uncertain` is surfaced (flagged) but non-gating; **`rejected`
+is listed in a "Filtered" section with your reason — never dropped silently.** Don't reject a
 finding just because you couldn't quickly reproduce it (→ `uncertain`), and don't assert an
-unconfirmed finding as fact. (Optional `--refute` adds an adversarial skeptic pass on confirmed P1s.)
+ungrounded finding as fact. (Optional `--refute` adds an adversarial skeptic pass on confirmed P1s.)
 
 ## Step 5 — Gate + fix
 
-- **Gate (confirmed findings only):** PASS iff `confirmed P1 == 0 AND (confirmed P2 == 0 OR each remaining deferred with a reason)`.
+**Two separate bars: gate on grounded evidence, auto-apply on an executable check.** A grounded
+P1 blocks (gates) even if you can't run it; the code is only *edited automatically* when a failing
+check can prove the edit worked. Surfacing stays generous.
+
+- **Gate (confirmed findings only):** PASS iff `confirmed P1 == 0 AND (confirmed P2 == 0 OR each remaining P2 explicitly accepted/deferred with a reason)`.
   `uncertain` is surfaced but does not gate; `rejected` never gates. Plan mode may also apply a rubric gate (overall ≥ 7, every dimension > 3).
 - **fix=report** (default): print findings + suggested fixes only. No edits.
-- **fix=apply:** only **`confirmed`** findings are eligible. Apply **Mechanical** fixes (obvious, high-confidence, empirically backed) automatically;
-  **Taste / User-Challenge** decisions go through `AskUserQuestion`. **Never edit a plan doc without explicit user approval.**
+- **fix=apply** — auto-edit only findings that are **`confirmed` AND have an executable reproduction** (Step 4.5 form (i)).
+  For each, run the **apply → verify → keep-or-revert** loop (full method: `references/adjudicate.md`):
+  1. **Derive the fix yourself** from the confirmed root cause. Do NOT paste the lens/Codex's suggested patch unverified — a real bug often ships with a wrong fix (a top source of weird edits).
+  2. **Apply** the minimal change.
+  3. **Verify:** re-run the finding's reproduction — it must flip **fail→pass** — AND, if health exists, re-run it (no regression vs the Step-3 baseline). **If health is unavailable you can't prove no-regression → don't auto-apply; report the fix instead.**
+  4. **Keep or revert:** all checks pass → keep + record before/after output. Either fails → **revert the edit**, downgrade the verdict `confirmed → uncertain` (or `rejected` if the failed fix disproves it), and leave it as a reported suggestion (never an unproven edit).
+  - **Confirmed-but-cited-only** findings (form (ii): races, design, security, plan/spec) and all **`uncertain`** ones → **reported with a suggested fix, not auto-edited** — the human applies them.
+  - **Cost guard:** if a reproduction is expensive (>~30s) or many fixes queue, warn + batch (or just report) rather than re-running after every edit.
+  - **Taste / User-Challenge** decisions go through `AskUserQuestion` first. **Never edit a plan doc without explicit user approval.**
 
 ## Step 6 — Report + persist
 

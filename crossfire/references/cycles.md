@@ -45,9 +45,13 @@ Transitions (each requires `source` + `evidence`):
    Filtered list. Then **merge** (id not seen before). Dedup by id.
 6. **Regression section**: for each file/function changed by cycle k-1's fixes, record `checked_by`
    (health|codex|lens) + evidence; anything unverified → `inconclusive`.
-7. **If `fix=apply`**: apply **Mechanical** fixes for `open` items now (edit the files); record each fix in the
-   ledger (`fix`, applied-in-cycle) and `cycle_k.md`. The item stays `open` until the NEXT cycle verifies it →
-   then ack flips it to `fixed`/`still-failing`. **Taste / User-Challenge** → `AskUserQuestion`. Never edit a plan doc without approval.
+7. **If `fix=apply`**: auto-edit only `open` items that are **`confirmed` with an executable reproduction**
+   (Step 4.5 form (i)). Apply each through the **apply → verify → keep-or-revert loop immediately this cycle**
+   (re-run its reproduction fail→pass + health no-regression; else revert + downgrade the verdict) — do **not**
+   defer verification to the next cycle. Record fix + before/after in the ledger and `cycle_k.md`; a kept fix is
+   marked `fixed` now (the next cycle's ack re-checks for regression). **Confirmed-but-cited-only (form (ii)) and
+   `uncertain` items are reported suggestions, not auto-edited.** **Taste / User-Challenge** → `AskUserQuestion`.
+   Never edit a plan doc without approval.
 8. **Write `cycle_k.md`** journal: lenses run + trigger signals, fixes applied + diff, decisions
    (Mechanical/Taste/Challenge), gate result, regression section, ack coverage (`unresolved N carried / M acknowledged`).
 9. **Convergence check** — STOP when **all** hold: (new-open this cycle == 0) AND (regressions == 0) AND
