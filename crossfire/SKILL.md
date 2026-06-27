@@ -168,11 +168,13 @@ check can prove the edit worked. Surfacing stays generous.
   - **Gate FAILs under `fix=apply` and the blockers aren't auto-editable** (form (ii), or `still-failing` after a failed fix) → report each with its suggested fix and **exit with a clear "fix=apply cannot close these — manual fix required" message; don't loop.** In `cycles=N`, a form-(ii) or `still-failing` P1 is a **manual blocker**: surface it and stop cycling (FAIL + reason) rather than burning cycles that cannot resolve it.
   - **Cost guard:** if a reproduction is expensive (>~30s) or many fixes queue, warn + batch (or just report) rather than re-running after every edit.
   - **Taste / User-Challenge** decisions go through `AskUserQuestion` first. **Never edit a plan doc without explicit user approval.**
+  - **Final regression gate (after ALL fixes are applied — run once).** Per-fix verify only checks each fix in isolation, and the cost guard may have batched/skipped intermediate health runs, so the *combined* final state is not yet proven. When the loop is done, **re-run the full health suite once on the final state and diff it against the Step-3 baseline.** Any failure **not** in the baseline is a **regression this changeset introduced** → record it as a new `confirmed` P1 (health-backed): bisect to the culprit (revert-and-recheck), **revert that fix** (or report it if you can't isolate it), and re-run until the final state is clean or the regression is reported unresolved (**gate FAIL**). **No health suite → the changeset's regression status is `unverified`, not "clean"** — say so explicitly. The run PASSes only when the final state has **no new failures vs baseline**.
 
 ## Step 6 — Report + persist
 
 Print a findings table: `id · severity(orig→adjudicated) · location · source(lens/tool) · verdict · claim · evidence · fix · status`,
-then the gate result, skipped tools, and a cost summary. Add a **"Filtered (rejected / by-design)"**
+then the gate result, the **final regression check** (`clean` / `N new failures vs baseline` / `unverified — no health`),
+skipped tools, and a cost summary. Add a **"Filtered (rejected / by-design)"**
 section listing every `rejected` finding with your reason — so the filtering is auditable and the
 user can override your judgment.
 

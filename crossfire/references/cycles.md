@@ -53,6 +53,9 @@ Transitions (each requires `source` + `evidence`):
    for regression). **Confirmed-but-cited-only (form (ii)) and `uncertain` items are reported suggestions, not
    auto-edited — a form-(ii) or `still-failing` P1 is a manual blocker `fix=apply` cannot close (see convergence).**
    **Taste / User-Challenge** → `AskUserQuestion`. Never edit a plan doc without approval.
+   **Final regression gate (after all this cycle's fixes):** re-run full health on the combined state and diff vs
+   baseline; any new failure → the culprit fix is `regressed`/`still-failing` (gates) — bisect + revert, or report.
+   No health suite → mark the cycle's regression status `unverified` (not clean).
 8. **Write `cycle_k.md`** journal: lenses run + trigger signals, fixes applied + diff, decisions
    (Mechanical/Taste/Challenge), gate result, regression section, ack coverage (`unresolved N carried / M acknowledged`).
 9. **Convergence check** — STOP when **all** hold: (new-open this cycle == 0) AND (regressions == 0) AND
