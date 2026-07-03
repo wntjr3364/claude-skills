@@ -30,6 +30,13 @@ behavior (see the honest cap below — this is scaffolding, not a capability upg
 **Can't**: raise reasoning capability. This is prompt scaffolding — expect Fable-like
 *reliability and communication*, not Fable-level intelligence. The skill says so itself.
 
+## Cost
+
+Registry entry (paid every session, like any skill): ~190 tokens. Full adoption on
+invocation (SKILL.md + contract.md + gates.md): **~5k tokens** — lighter than a
+crossfire run. A trivial single-fact wrap answers directly without the ceremony;
+gates.md is re-anchored at natural boundaries, not re-read on every stop.
+
 ## Files
 
 - `SKILL.md` — orchestrator: fit-check → adopt contract → execute → gate every stop.

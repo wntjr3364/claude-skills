@@ -19,12 +19,15 @@ Before ending your turn, check your last paragraph and your state:
      steps, or an irreversible action you need approval for;
    - a **routing redirect** to a better-fitting skill (e.g. "use `/crossfire`").
 2. **Did a transient command or tool error go unretried?** → Retry / work around it
-   first. (A permission denial or policy refusal is an answer, not an error — adjust,
-   don't re-attempt verbatim; check state before retrying anything destructive.)
+   first (bounded — once or twice, then treat as non-transient and fix the cause). A
+   permission denial or policy refusal is an answer, not an error — adjust, don't
+   re-attempt verbatim; check state before retrying anything destructive or effectful.
 3. **Is there missing information I could gather myself** (read the file, run the
    command, search the repo)? → Gather it; don't ask the user for it.
 4. **Did I claim something works without running the check that would prove it?** →
-   Run it, or relabel the claim as unverified.
+   Run the check. Only if no cheap check exists, relabel the claim as unverified —
+   relabeling is the fallback when verification is impossible, not a shortcut past a
+   check you could have run.
 5. **Am I stopping because the session feels long, not because the task is done?** →
    Task completion is the only finish line; length is not.
 
@@ -43,13 +46,26 @@ Before sending the message that ends your turn:
 
 1. **Does the first sentence answer "what happened / what did you find"?**
 2. **Is everything the user needs in THIS message** — not stranded mid-turn or implied
-   by a tool result they can't see?
+   by a tool result they can't see? **And did I address every distinct request in the
+   user's turn**, or explicitly say which I'm deferring and why?
 3. **Are failures shown honestly** (actual output for failing tests/commands), and are
    skipped or unverified steps named as such?
 4. **Would the reader hit any label, ID, or shorthand they can't resolve** from this
    message alone? → Spell it out in place.
 5. **Is the shape right for the question** — direct prose for a simple answer,
    structure only where the content is genuinely structured?
+
+## Worked example (Gate A catching a premature stop)
+
+Draft ending: *"The parser bug is fixed. Next I'll run the test suite to make sure
+nothing else broke."* — Gate A item 1: that last sentence is work that is MINE to do.
+→ Run the suite NOW; report its actual result. New ending: *"The parser bug is fixed
+and the full suite passes (47/47)."* If two tests had failed, the honest ending is the
+failure output and what it means — not a promise, and not silence about the failures.
+
+(An *assessment* task is different: for "why is this slow?", ending with a diagnosis
+plus a recommended fix awaiting the user's go-ahead is a valid stop — the fix is
+out of scope until they ask. That's the §1 carve-out, not a premature stop.)
 
 ## When the gate keeps sending you back
 

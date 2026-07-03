@@ -1,0 +1,2 @@
+word_count() in textstats.py miscounts when words are separated by newlines instead of
+spaces. Fix it, then run the test suite and tell me the state of the module.
