@@ -69,6 +69,14 @@ bloat; fable must NOT be much heavier here).
   it could neither run the suite nor load the full contract (it fell back to the SKILL.md
   inline summary). `run.sh` therefore uses `--dangerously-skip-permissions` (safe: each
   run is an isolated mktemp workdir) to reproduce a normal fully-permissioned session.
+- **Config isolation is required.** The `fable5-ref` premature-stop run was polluted: the
+  model inherited the user's global `~/.claude/CLAUDE.md` (AI-collaboration / codex
+  delegation / async guardrail), delegated the task to codex, and ended its turn with
+  "Codex processing..." — an ungradeable transcript. Fix: `./setup-clean-config.sh` builds
+  an isolated `CLAUDE_CONFIG_DIR` (outside the repo) with only a **symlinked** credential
+  (no token copy) + the fable skill, no CLAUDE.md, no plugins. `run.sh` exports it, so both
+  on/off see one clean environment and the transcript reflects the model, not codex. **Run
+  `./setup-clean-config.sh` once before any eval run.**
 
 ## Honest limits
 

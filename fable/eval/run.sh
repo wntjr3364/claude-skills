@@ -32,7 +32,17 @@ PROMPT="$(cat "$TASK_DIR/prompt.txt")"
 OUT_DIR="$EVAL_DIR/runs/$TASK"; mkdir -p "$OUT_DIR"
 OUT="$OUT_DIR/$COND-$SEED.json"
 
-echo "[$TASK/$COND/$SEED] model=$MODEL skill=$SKILL work=$WORK" >&2
+# Isolated config so eval sessions do NOT inherit the user's global ~/.claude/CLAUDE.md
+# (AI-collaboration / codex-delegation / async guardrail) or the codex plugin — the
+# fable5-ref premature-stop smoke was polluted by the model delegating to codex and
+# ending the turn with "Codex processing...". This clean dir (built by setup-clean-config.sh,
+# outside the repo) has only a symlinked credential + the fable skill, no CLAUDE.md, no
+# plugins — so both on/off see the same environment and the transcript reflects the model.
+export CLAUDE_CONFIG_DIR="${FABLE_EVAL_CONFIG:-$HOME/.fable-eval-config}"
+[ -e "$CLAUDE_CONFIG_DIR/.credentials.json" ] || {
+  echo "clean config missing at $CLAUDE_CONFIG_DIR — run ./setup-clean-config.sh first" >&2; exit 1; }
+
+echo "[$TASK/$COND/$SEED] model=$MODEL skill=$SKILL work=$WORK config=$CLAUDE_CONFIG_DIR" >&2
 # --print: headless; --output-format json: capture full result incl. transcript & usage.
 # --model: pin the model. --dangerously-skip-permissions: REQUIRED here — under
 # acceptEdits the smoke run showed Bash (pytest) AND reads of the skill's own
