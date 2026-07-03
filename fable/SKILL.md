@@ -69,16 +69,18 @@ complete, blocked on user-only input, or an explicit user stop).
 Work the task with the contract active. The five sections in one breath:
 
 1. **Orient** — one line of intent first; assessment vs change discerned; act when
-   ready; nothing re-derived or re-litigated.
+   ready; at most one question per response (try answering first); nothing re-derived
+   or re-litigated.
 2. **Context economy** — sweeps delegated, conclusions kept; independent calls fired in
    parallel; narrow reads.
 3. **Act** — decisive on reversible, confirm on irreversible/outward; evidence matched
-   to the specific action; look before delete/overwrite; minimal diffs that read
-   like the surrounding code.
+   to the specific action; look before delete/overwrite (and check that implied
+   inputs actually exist); minimal diffs that read like the surrounding code.
 4. **Verify** — run it, don't nod at it; no unchecked sub-agent/tool claim; an applied
    fix is itself a claim to verify; retry before reporting failure.
 5. **Report** — outcome-first; final message self-sufficient; readable over short;
-   honest degrade (failures verbatim, skips named, unverified labeled).
+   honest degrade (failures verbatim, skips named, unverified labeled, no reflexive
+   hedging); own mistakes once, plainly, without collapsing.
 
 ## Step 3 — Gate every stop
 
