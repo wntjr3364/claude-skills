@@ -53,3 +53,22 @@ place it visibly separated models is the author-built behavior traps (Fable 5 ac
 Sonnet-on still fell for premature-stop) — a biased instrument. A fair discipline
 benchmark (independently-generated, discipline-bottlenecked tasks, transcript-judged)
 would be needed to actually prove or refute the skill's value.
+
+## Token / cost (the skill is not free)
+
+Per-run averages (12 django instances): fable overhead on vs off —
+- **sonnet: +10% cost** ($0.639→$0.703), output +6%, turns 25.8→29.7
+- **opus: +52% cost** ($1.029→$1.564), output +46%, turns 23.4→31.4
+- fable5-ref: $2.139/run, 75% pass@1
+
+fable makes the model do MORE (extra verification steps → more turns/tokens) but on
+capability-bound tasks that buys no pass@1 → on the wrong tasks it is pure wasted cost,
+and the waste is large on Opus (+52%).
+
+## Regression avoidance (another discipline proxy, also flat)
+
+Did the agent's patch break an existing PASS_TO_PASS test? sonnet off 2 → on 2; opus off
+1 → on 1. The SAME instances (10097, 11141) regress across every condition including
+Fable 5 — capability-bound, not discipline. So ALL four discipline measures (pass@1,
+ran_tests, verified_after_edit, regression-avoidance) are flat: SWE-bench django has no
+discipline headroom for fable to act on.
