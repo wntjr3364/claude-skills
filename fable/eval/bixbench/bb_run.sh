@@ -15,12 +15,17 @@ PYENV="$HERE/pyenv"
 [ -x "$PYENV/bin/python" ] || { echo "python env missing at $PYENV" >&2; exit 1; }
 
 case "$COND" in
-  sonnet-off|sonnet-on) MODEL="claude-sonnet-4-6" ;;
-  opus-off|opus-on)     MODEL="claude-opus-4-8" ;;
-  fable5-ref)           MODEL="claude-fable-5" ;;
+  sonnet-off|sonnet-on|sonnet-biostack) MODEL="claude-sonnet-4-6" ;;
+  opus-off|opus-on|opus-biostack)       MODEL="claude-opus-4-8" ;;
+  fable5-ref)                           MODEL="claude-fable-5" ;;
   *) echo "bad condition"; exit 1 ;;
 esac
-case "$COND" in *-on) SKILL=1 ;; *) SKILL=0 ;; esac
+# mode: off=vanilla, on=/fable, biostack=/biostack-analyze
+case "$COND" in
+  *-on)       PREFIX="/fable " ;;
+  *-biostack) PREFIX="/biostack-analyze " ; export PATH="/mnt/storage/wntjr3364/Task/biostack/bin:$PATH" ;;
+  *)          PREFIX="" ;;
+esac
 
 INST="$HERE/instances/$SID"
 [ -f "$INST/meta.json" ] || { echo "run prepare_bixbench.py $SID first" >&2; exit 1; }
@@ -38,9 +43,9 @@ Question: $Q
 
 Explore the data first, run the analysis, and end with a line exactly:
 FINAL ANSWER: <your answer>"
-[ "$SKILL" = 1 ] && PROMPT="/fable $PROMPT"
+PROMPT="${PREFIX}${PROMPT}"
 
-echo "[$SID/$COND/$SEED] model=$MODEL skill=$SKILL work=$WORK" >&2
+echo "[$SID/$COND/$SEED] model=$MODEL mode=$COND work=$WORK" >&2
 ( cd "$WORK" && PATH="$PYENV/bin:$PATH" \
     claude --print --output-format json --model "$MODEL" \
     --dangerously-skip-permissions "$PROMPT" ) > "$OUT/$COND-$SEED.json" 2>"$OUT/$COND-$SEED.err" \
