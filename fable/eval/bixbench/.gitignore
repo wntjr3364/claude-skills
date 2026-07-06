@@ -1,8 +1,0 @@
-pyenv/
-capsules/
-instances/
-runs/
-repo/
-*.log
-jobs.txt
-graded.json

@@ -1,8 +1,0 @@
-runs/
-preds/
-instances/
-logs/
-*_probe.jsonl
-*.goldprobe.json
-gold.*.json
-sonnet-*.json

@@ -1,2 +1,0 @@
-moving_average() in stats_util.py computes the head of the series wrong — the first
-window-1 entries don't match the docstring ("average what exists"). Please fix it.

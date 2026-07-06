@@ -1,5 +1,0 @@
-runs/
-.venv-swebench/
-.claude-clean/
-tasks/*/fixture/__pycache__/
-tasks/*/fixture/tests/__pycache__/
